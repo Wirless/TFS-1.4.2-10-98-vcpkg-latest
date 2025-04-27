@@ -1,5 +1,5 @@
 
-vc17/*
+vc17/x64/*
 *.spr
 *.dat
 *.log
@@ -13,3 +13,5 @@ clientbuild/Rookgaard_Independence.log
 /clientbuild/otclient_gl_x64.pdb
 clientbuild/Rookgaard_Independence.log
 clientbuild/Rookgaard_Independence.log
+/vc17/.vs/theforgottenserver/v17
+/vc17/.vs/theforgottenserver
