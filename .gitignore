@@ -1,0 +1,15 @@
+
+vc17/*
+*.spr
+*.dat
+*.log
+config.lua
+clientbuild/Rookgaard_Independence.log
+*.log
+clientbuild/Rookgaard_Independence.log
+/clientbuild/vcpkg_installed/*
+/clientbuild/vc17/x64/*
+/clientbuild/vc17/.vs/*
+/clientbuild/otclient_gl_x64.pdb
+clientbuild/Rookgaard_Independence.log
+clientbuild/Rookgaard_Independence.log
