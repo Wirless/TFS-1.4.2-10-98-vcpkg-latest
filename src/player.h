@@ -861,6 +861,8 @@ class Player final : public Creature, public Cylinder
 			}
 		}
 
+		void autoOpenContainers();
+
 		//event methods
 		void onUpdateTileItem(const Tile* tile, const Position& pos, const Item* oldItem,
 		                              const ItemType& oldType, const Item* newItem, const ItemType& newType) override;
@@ -1144,6 +1146,10 @@ class Player final : public Creature, public Cylinder
 		void learnInstantSpell(const std::string& spellName);
 		void forgetInstantSpell(const std::string& spellName);
 		bool hasLearnedInstantSpell(const std::string& spellName) const;
+		const std::map<uint8_t, OpenContainer>& getOpenContainers() const
+		{
+			return openContainers;
+		}
 
 		void updateRegeneration();
 

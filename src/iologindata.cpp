@@ -1,11 +1,30 @@
-// Copyright 2022 The Forgotten Server Authors. All rights reserved.
-// Use of this source code is governed by the GPL-2.0 License that can be found in the LICENSE file.
+
+﻿/**
+ * The Forgotten Server - a free and open-source MMORPG server emulator
+ * Copyright (C) 2019  Mark Samman <mark.samman@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 
 #include "otpch.h"
 
 #include "iologindata.h"
 #include "configmanager.h"
 #include "game.h"
+#include <vector> 
 
 #include <fmt/format.h>
 
@@ -551,9 +570,11 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 	return true;
 }
 
-bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList, DBInsert& query_insert, PropWriteStream& propWriteStream)
+bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList, DBInsert& query_insert, PropWriteStream& propWriteStream, std::map<Container*, int>& openContainers)
 {
 	using ContainerBlock = std::pair<Container*, int32_t>;
+
+	std::vector<ContainerBlock> containers;
 	std::list<ContainerBlock> queue;
 
 	int32_t runningId = 100;
@@ -563,6 +584,17 @@ bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList,
 		int32_t pid = it.first;
 		Item* item = it.second;
 		++runningId;
+
+		if (Container* container = item->getContainer()) {
+			auto it = openContainers.find(container);
+			if (it == openContainers.end()) {
+				container->resetAutoOpen();
+			}
+			else {
+				container->setAutoOpen(it->second);
+			}
+			queue.emplace_back(container, runningId);
+		}
 
 		propWriteStream.clear();
 		item->serializeAttr(propWriteStream);
@@ -574,9 +606,11 @@ bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList,
 			return false;
 		}
 
+
 		if (Container* container = item->getContainer()) {
 			queue.emplace_back(container, runningId);
 		}
+
 	}
 
 	while (!queue.empty()) {
@@ -590,6 +624,15 @@ bool IOLoginData::saveItems(const Player* player, const ItemBlockList& itemList,
 
 			Container* subContainer = item->getContainer();
 			if (subContainer) {
+
+				auto it = openContainers.find(subContainer);
+				if (it == openContainers.end()) {
+					subContainer->resetAutoOpen();
+				}
+				else {
+					subContainer->setAutoOpen(it->second);
+				}
+
 				queue.emplace_back(subContainer, runningId);
 			}
 
@@ -747,6 +790,15 @@ bool IOLoginData::savePlayer(Player* player)
 	}
 
 	//item saving
+
+
+	std::map<Container*, int> openContainers;
+	for (auto container : player->getOpenContainers()) {
+		if (!container.second.container) continue;
+		openContainers[container.second.container] = container.first;
+	}
+
+
 	if (!db.executeQuery(fmt::format("DELETE FROM `player_items` WHERE `player_id` = {:d}", player->getGUID()))) {
 		return false;
 	}
@@ -761,7 +813,7 @@ bool IOLoginData::savePlayer(Player* player)
 		}
 	}
 
-	if (!saveItems(player, itemList, itemsQuery, propWriteStream)) {
+	if (!saveItems(player, itemList, itemsQuery, propWriteStream, openContainers)) {
 		return false;
 	}
 
@@ -780,8 +832,28 @@ bool IOLoginData::savePlayer(Player* player)
 			}
 		}
 
-		if (!saveItems(player, itemList, depotQuery, propWriteStream)) {
+		if (!saveItems(player, itemList, lockerQuery, propWriteStream, openContainers)) {
 			return false;
+		}
+
+		//save depot items
+		if (needsSave) {
+			if (!db.executeQuery(fmt::format("DELETE FROM `player_depotitems` WHERE `player_id` = {:d}", player->getGUID()))) {
+				return false;
+			}
+
+			DBInsert depotQuery("INSERT INTO `player_depotitems` (`player_id`, `pid`, `sid`, `itemtype`, `count`, `attributes`) VALUES ");
+			itemList.clear();
+
+			for (const auto& it : player->depotChests) {
+				for (Item* item : it.second->getItemList()) {
+					itemList.emplace_back(it.first, item);
+				}
+			}
+
+			if (!saveItems(player, itemList, depotQuery, propWriteStream, openContainers)) {
+				return false;
+			}
 		}
 	}
 
