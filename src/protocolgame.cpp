@@ -213,7 +213,7 @@ void ProtocolGame::login(const std::string& name, uint32_t accountId, OperatingS
 				return;
 			}
 		}
-		player->autoOpenContainers();
+
 		if (operatingSystem >= CLIENTOS_OTCLIENT_LINUX) {
 			player->registerCreatureEvent("ExtendedOpcode");
 		}
@@ -266,7 +266,6 @@ void ProtocolGame::connect(uint32_t playerId, OperatingSystem_t operatingSystem)
 
 	player->client = getThis();
 	sendAddCreature(player, player->getPosition(), 0, false);
-	player->autoOpenContainers();
 	player->lastIP = player->getIP();
 	player->lastLoginSaved = std::max<time_t>(time(nullptr), player->lastLoginSaved + 1);
 	player->resetIdleTime();

@@ -846,31 +846,6 @@ void Player::sendStats()
 	}
 }
 
-void Player::autoOpenContainers()
-{
-	for (int32_t i = CONST_SLOT_FIRST; i <= CONST_SLOT_LAST; i++) {
-		Item* item = inventory[i];
-		if (!item) {
-			continue;
-		}
-
-		if (Container* container = item->getContainer()) {
-			if (container->getAutoOpen() >= 0) {
-				addContainer(container->getAutoOpen(), container);
-				onSendContainer(container);
-			}
-			for (ContainerIterator it = container->iterator(); it.hasNext(); it.advance()) {
-				if (Container* subContainer = (*it)->getContainer()) {
-					if (subContainer->getAutoOpen() >= 0) {
-						addContainer(subContainer->getAutoOpen(), subContainer);
-						onSendContainer(subContainer);
-					}
-				}
-			}
-		}
-	}
-}
-
 void Player::sendPing()
 {
 	int64_t timeNow = OTSYS_TIME();
